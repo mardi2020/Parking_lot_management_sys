@@ -59,7 +59,7 @@ int main(){
     
     memset((void *)&server_addr, 0x00, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = PORT_NUM;
+    server_addr.sin_port = htons(PORT_NUM);
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY); // htonl : IP는 32비트이므로
     // INADDR_ANY : 컴퓨터에 존재하는 랜카드 중 사용 가능한 랜카드의 ip 주소 사용
     
