@@ -27,23 +27,36 @@ class ParkingLot(Structure) :
         ("occupiedarea", c_int * TOTAL)
     ]
 
-
-        
+print("1. 주차장 정보 요청")
+print("2. 차량 등록") #들어갈때
+print("3. 차량 요금 정산") # 나갈때
+command = int(input("  >> "))
 
 socket_client = socket(AF_INET, SOCK_STREAM)
 socket_client.connect(('127.0.0.1', PORT))
-
-# 차량 정보를 얻기 위한 메시지
 mess = message_format()
-mess.message_id = 2 # 주차장 : 1 차량 : 2
-data ="11가 1111"
-mess.len = len(data)
-mess.data = bytes(data+"\0",'utf-8')
+if command == 1 :
+    mess.message_id = 1
+    data = input("주차장 번호 입력(1~5) : ")
+    mess.len = len(data)
+    mess.data = bytes(data + '\0', 'utf-8')
+
+elif command == 2 :
+    mess.message_id = 2
+    data = input("차량 번호 입력(11가 1111) : ")# 추후 차량 번호판 인식으로 변경
+    mess.len = len(data)
+    mess.data = bytes(data + '\0', 'utf-8')
+elif command == 3 :
+    mess.message_id = 3
+    data = input("차량 번호 입력(11가 1111) : ")# 추후 차량 번호판 인식으로 변경
+    mess.len = len(data)
+    mess.data = bytes(data + '\0', 'utf-8')
+
 
 socket_client.send(mess)
 
 
-if mess.message_id == 1 :
+if mess.message_id == 1 and command == 1:
     buff = socket_client.recv(sizeof(ParkingLot))
     pl = ParkingLot.from_buffer_copy(buff)
     print(buff)
@@ -54,14 +67,17 @@ if mess.message_id == 1 :
     print("총 주차 자리수 : ",pl.space)
     print("주차 배열 : ",pl.occupiedarea[:])
 
-elif mess.message_id == 2 :
+elif mess.message_id == 2 and command == 2:
     buff = socket_client.recv(sizeof(Car))
     car = Car.from_buffer_copy(buff)
     print("주차장 번호 : ",car.parkingLotNumber)
     print("주차된 차량 위치 : ",car.occupiedNumber)
     print("차번호 :", car.carnumber.decode('utf-8'))
 
-
+elif command == 3 :
+    data = socket_client.recv(6)
+    print("요금 : ",data.decode())
+    
 print("Closing socket")
 socket_client.close()
     

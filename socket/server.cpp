@@ -42,6 +42,7 @@ std::vector<MYSQL_ROW> car_vector; // 차량 정보 저장
 std::vector<MYSQL_ROW> parkinglot_vector; // 주차장정보 저장
 int mess_id;
 char mess_data[256];
+int toll = 0;
 
 struct message_format {
     short message_id; // tag
@@ -50,11 +51,14 @@ struct message_format {
 };
 
 void sig_handler(int signo);
+std::string GetDate();
+std::string GetTime();
 void ComputeOccupiedArea(std::vector<MYSQL_ROW> row, int arr[]);
 void setmessagecar(Car &car, int x, int y, char num[]);
 void setmessageparkinglot(ParkingLot &pl, int num, char add[], int emt, int space, int ary[]);
 void *thread_function1(void *data);
 void *thread_function2(void *data);
+void *thread_function3(void *data);
 MYSQL_RES* UpdateOccupiedNumber(MYSQL* Connptr, int parkinglotnum);
 
 int main(){
@@ -138,6 +142,40 @@ int main(){
             else if (2 == message.message_id){ // 차량
                 pthread_create(&thread_id, NULL, thread_function2, (void *)&client_fd);
             }
+            else if (3 == message.message_id){
+                // 요금 정산할때 시간 저장
+                std::string date, time;
+                date = GetDate(); time = GetTime();
+                std::string query = "UPDATE car SET outdate = '"+ std::string(date) +"' WHERE number = '"+ std::string(mess_data) +"'";
+                mysql_query(ConnPtr, query.c_str());
+                
+                std::cout<<"time : "<<time<<endl;
+
+                query = "UPDATE car SET outtime = '"+ time +"' WHERE number = '"+mess_data+"'";
+                mysql_query(ConnPtr, query.c_str());
+                // 요금 계산 후 db 갱
+                
+                query = "SELECT intime FROM car WHERE number = '"+ std::string(mess_data) +"'";
+
+                mysql_query(ConnPtr, query.c_str());
+                res = mysql_store_result(ConnPtr);
+                row = mysql_fetch_row(res);
+                std::string start_time = std::string(row[0]);
+                int min = (start_time[3]-48) * 10 + (start_time[4]-48);
+                int hour = (start_time[0]-48)* 10 + (start_time[1]-48);
+
+                min  -= ((time[3]-48) * 10 + (time[4]-48));
+                hour -= ((time[0]-48) * 10 + (time[1]-48)) * 60;
+                int result = 1440 - (hour + min);
+
+                toll = result * 100;
+
+                query = "UPDATE car SET toll = "+std::to_string(toll)+" WHERE number = '"+std::string(mess_data)+"'";
+                mysql_query(ConnPtr, query.c_str());
+                std::cout<<query<<endl;
+                pthread_create(&thread_id, NULL, thread_function3, (void *)&client_fd);
+ 
+            }
 
             memset(message.data, 0x00, sizeof(message.data));
             pthread_detach(thread_id);
@@ -147,6 +185,23 @@ int main(){
     mysql_free_result(res);
 }
 
+std::string GetDate(){
+     time_t t; tm *pt;
+     time(&t); pt = localtime(&t);
+     char buff[11];
+     if (pt->tm_mon+1 < 10)
+     	sprintf(buff, "%d-0%d-%d", pt->tm_year+1900, pt->tm_mon+1, pt->tm_mday);
+     else
+        sprintf(buff, "%d-%d-%d", pt->tm_year+1900, pt->tm_mon+1, pt->tm_mday);  
+     return std::string(buff);
+}
+std::string GetTime(){
+    time_t t; tm *pt;
+    time(&t); pt = localtime(&t);
+    char buff2[13];
+    sprintf(buff2, "%d:%d:%d", pt->tm_hour, pt->tm_min, pt->tm_sec);
+    return std::string(buff2);
+}
 void ComputeOccupiedArea(std::vector<MYSQL_ROW> row, int arr[]){
     int n = row.size();
     for(int i = 0 ;i < n ;i++){
@@ -198,7 +253,6 @@ void *thread_function2(void *data){
     struct sockaddr_in client_addr;
     addrlen = sizeof(client_addr);
     Car car;
-
     int parkinglotnum = 0, occupiednum = 0;
     for (auto e : car_vector){
         if (strcmp(e[0], mess_data) == 0){
@@ -208,14 +262,23 @@ void *thread_function2(void *data){
             }
         }
     }
-    
     setmessagecar(car, parkinglotnum, occupiednum, mess_data);
     int s = (send(sockfd, (Car *)& car, sizeof(car), 0));
-
     close(sockfd);
     std::cout<<"차량 thread end"<<endl;
 }
 
+void *thread_function3(void *data){
+    int sockfd = *((int *) data);
+    socklen_t addrlen;
+    struct sockaddr_in client_addr;
+    addrlen = sizeof(client_addr);
+    char buff[100];
+    sprintf(buff,"%ld", toll);
+    int s = (send(sockfd, buff, sizeof(buff), 0));
+    close(sockfd);
+    std::cout<<"요금 thread end"<<endl;
+}
 // Car 테이블의 location_p 변수를 count하여 parkinglot 테이블 occupied에 반영
 MYSQL_RES* UpdateOccupiedNumber(MYSQL* Connptr, int parkinglotnum){
     std::string String = static_cast<std::ostringstream*>( &(std::ostringstream() << parkinglotnum))->str();
