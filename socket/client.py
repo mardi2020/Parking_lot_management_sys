@@ -28,14 +28,14 @@ class ParkingLot(Structure) :
     ]
 
 print("1. 주차장 정보 요청")
-print("2. 차량 등록") #들어갈때
-print("3. 차량 요금 정산") # 나갈때
+print("3. 차량 등록") #들어갈때
+print("4. 차량 요금 정산") # 나갈때
 command = int(input("  >> "))
 
 socket_client = socket(AF_INET, SOCK_STREAM)
 socket_client.connect(('127.0.0.1', PORT))
 mess = message_format()
-if command == 1 :
+if command == 1 : # 조회
     mess.message_id = 1
     data = input("주차장 번호 입력(1~5) : ")
     mess.len = len(data)
@@ -43,9 +43,10 @@ if command == 1 :
 
 elif command == 2 :
     mess.message_id = 2
-    data = input("차량 번호 입력(11가 1111) : ")# 추후 차량 번호판 인식으로 변경
+    data = input("차량 번호_주차장_주차자리 : ")# 추후 차량 번호판 인식으로 변경
     mess.len = len(data)
     mess.data = bytes(data + '\0', 'utf-8')
+
 elif command == 3 :
     mess.message_id = 3
     data = input("차량 번호 입력(11가 1111) : ")# 추후 차량 번호판 인식으로 변경
