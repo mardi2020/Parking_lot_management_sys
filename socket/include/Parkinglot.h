@@ -12,7 +12,7 @@
 class Parkinglot{
 public:
     // 주차장 등록용
-    Parkinglot(int space, char add[]);
+    Parkinglot(int space, char add[], MYSQL * ptr);
 
     // 주차장 정보 조회용
     Parkinglot(std::string parkinglotnum, MYSQL* ptr);
@@ -31,11 +31,16 @@ public:
     void Setspace(std::string pln);
     // 테이블에서 조회
     int GetOccupied(std::string pln);
-    
+
     // 조회
     void Setoccupiedarea(std::string pln);
     // 조회용
     void Updateoccupied();
+    int GetSize();
+    void PrintArray();
+
+    void WriteData(std::string FILE);
+    void ReadData(std::string FILE);
     
 private:
     std::string parkinglotNum; 

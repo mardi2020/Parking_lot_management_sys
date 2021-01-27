@@ -7,22 +7,22 @@
 #include "include/Parkinglot.h"
 #define MAXSIZE 10
 
-Parkinglot::Parkinglot(int space, char add[])
+Parkinglot::Parkinglot(int space, char add[], MYSQL * ptr)
 {
+    this->ConnPtr = ptr;
     this->space = space;
     this->occupied = 0;
     memset(occupiedarea, 0x00, sizeof(occupiedarea));
     strcpy(this->address, add);
-    ConnPtr = nullptr;
 }
 Parkinglot::Parkinglot(std::string parkinglotnum, MYSQL *ptr)
 {
+    this->ConnPtr = ptr;
     this->parkinglotNum = parkinglotnum;
     memset(occupiedarea, 0x00, sizeof(occupiedarea));
-    this->Getaddress(parkinglotnum);
+    this->Getaddress(parkinglotnum); 
     Setspace(parkinglotnum);
     this->occupied = GetOccupied(parkinglotnum);
-    ConnPtr = ptr;
 }
 Parkinglot::~Parkinglot() {}
 
@@ -41,24 +41,31 @@ char *Parkinglot::Getaddress(std::string pln)
 {
     MYSQL_RES *res;
     MYSQL_ROW row;
-
-    std::stringstream ssInt(pln);
-    int i = 0;
-    ssInt >> i;
-
-    std::string query = "SELECT address FROM parkinglot WHERE number = " + i;
-    mysql_query(this->ConnPtr, query.c_str());
+    std::string query = "SELECT address FROM parkinglot WHERE number = " + pln;
+    if (this->ConnPtr == NULL) {
+        std::cout << "mysql connnect ERROR!\n";
+    }
+    mysql_query(this->ConnPtr, query.c_str()); 
     res = mysql_store_result(this->ConnPtr);
     row = mysql_fetch_row(res);
 
     return row[0];
 }
 
-int* GetArray()
+int* Parkinglot::GetArray()
 {
     return this->occupiedarea;
 }
-
+int Parkinglot::GetSize()
+{
+    return sizeof(occupiedarea);
+}
+void Parkinglot::PrintArray()
+{
+    for(int i = 0;i < this->space;i++)
+        std::cout<<occupiedarea[i]<<' ';
+    std::cout<<std::endl;
+}
 //조회할때
 std::string Parkinglot::Getspace(std::string pln)
 {
@@ -126,4 +133,14 @@ void Parkinglot::Updateoccupied()
 {
     std::string query = "UPDATE parkinglot SET occupied=(SELECT COUNT(*) FROM car WHERE location_p = " + this->parkinglotNum + ") WHERE number = " + this->parkinglotNum;
     mysql_query(this->ConnPtr, query.c_str());
+}
+
+
+void Parkinglot::WriteData(std::string FILE){
+    std::string query = "SELECT * INTO OUTFILE '"+FILE+"'"+" FIELDS TERMINATED BY ',' ENCLOSED BY '\"' ESCAPED BY '\\' LINES TERMINATED BY '\n' FROM parkinglot";
+}
+
+void Parkinglot::ReadData(std::string FILE){
+    std::string query = "LOAD DATA LOCAL INFILE '" + FILE + "' "+"INTO TABLE parkinglot CHARACTER SET UTF8 FIELDS TERMINATED BY ','";
+    mysql_query(ConnPtr, query.c_str());
 }
