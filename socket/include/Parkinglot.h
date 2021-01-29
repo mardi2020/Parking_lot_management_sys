@@ -23,7 +23,7 @@ public:
     void Delete(std::string pln);
 
     char* Getaddress(std::string pln);
-
+    
     int* GetArray();
     //조회할때
     std::string Getspace(std::string pln);
@@ -37,7 +37,7 @@ public:
     // 조회용
     void Updateoccupied();
     int GetSize();
-    void PrintArray();
+    void Print();
 
     void WriteData(std::string FILE);
     void ReadData(std::string FILE);

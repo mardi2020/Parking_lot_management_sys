@@ -8,7 +8,7 @@ class Car(Structure) :
     _fields_ = [
         ("parkingLotNumber", c_int),
         ("occupiedNumber", c_int),
-        ("carnumber", c_char * 100),
+        ("carnumber", c_char * 12),
         ("startdate", c_char * 11),
         ("starttime", c_char * 9),
     ]
@@ -16,7 +16,7 @@ class Car(Structure) :
 class message_format(Structure) :
     _fields_ = [
         ("message_id", c_short),
-        ("sub_id", c_short),
+        #("sub_id", c_short),
         ("len", c_int),
         ("data", c_char * 256)
     ]
@@ -74,7 +74,8 @@ elif command == 3 :
 
 elif command == 4 :
     mess.message_id = 4
-    data = input("  차량 번호 입력(11가 1111) : ")# 추후 차량 번호판 인식으로 변경
+    #data = input("  차량 번호 입력(11가 1111) : ")# 추후 차량 번호판 인식으로 변경
+    data = '111가 1111'
     mess.len = len(data)
     mess.data = bytes(data + '\0', 'utf-8')
 
@@ -82,7 +83,7 @@ elif command == 4 :
 socket_client.send(mess)
 
 
-if mess.message_id == 1 and command == 1:
+if command == 1:
     buff = socket_client.recv(sizeof(ParkingLot))
     pl = ParkingLot.from_buffer_copy(buff)
     print("주차장 번호 : ", pl.number)
@@ -104,7 +105,8 @@ elif mess.message_id == 3 and command == 3:
 
 elif command == 4 :
     data = socket_client.recv(100)
-    print("요금 : ", data.decode())
+    print("요금 : ", data.decode('utf-8'))
+    print(data)
     
 print("Closing socket")
 socket_client.close()

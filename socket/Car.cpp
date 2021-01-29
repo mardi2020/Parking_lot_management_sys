@@ -11,7 +11,6 @@
 Car::Car(MYSQL *ConnPtr, char carnum[])
 {
     this->ConnPtr = ConnPtr;
-    // 주차 장소
     this->parkinglotNum = 0;
     this->occupiedNum = 0;
     strcpy(this->carnumber, carnum);
@@ -33,13 +32,8 @@ void Car::Setlocation(int len, message_format m)
 
     for (int i = 0; i < m.len; i++)
     {
-        if (0 <= i && i < 8)
-        {
-            continue;
-        }
-        else if (i == 9){
-            c = m.data[i] - 48;
-        }
+        if (i == m.len - 1)
+            c = m.data[i] - 48;  
     }
     this->occupiedNum = c;
 }
@@ -47,14 +41,19 @@ void Car::SetParkingNum(){ // db에서 가져오기
     MYSQL_RES *res;
     MYSQL_ROW row;
  
-    std::string query = "SELECT location_p FROM car WHERE number = '"+std::string(carnumber)+"'";
+    std::string query = "SELECT location_p FROM car WHERE number = '"+std::string(carnumber)+"' AND NOT location_p IS NULL";
     mysql_query(ConnPtr, query.c_str());
     res = mysql_store_result(ConnPtr);
-    row = mysql_fetch_row(res);
-    int p = atoi(row[0]);
+    int count = mysql_num_rows(res);
 
-    this->parkinglotNum = p;
-
+    if(count > 0){ //
+        row = mysql_fetch_row(res);
+        int p = atoi(row[0]);
+        this->parkinglotNum = p;
+    }
+    else{
+        this->parkinglotNum = 0;
+    }
 }
 int Car::GetParkingNum(){
     return this->parkinglotNum;
@@ -66,13 +65,20 @@ void Car::SetOccupiedNum(){ // db에서 가져오기
 
     MYSQL_RES *res;
     MYSQL_ROW row;
-
-    std::string query = "SELECT location_c FROM car WHERE number = '"+std::string(carnumber)+"'";
+    std::string query = "SELECT location_c FROM car WHERE number = '"+std::string(carnumber)+"' AND NOT location_c IS NULL";
     mysql_query(ConnPtr, query.c_str());
     res = mysql_store_result(ConnPtr);
-    row = mysql_fetch_row(res);
-    int c = atoi(row[0]);
-    this->occupiedNum = c;
+    int count = mysql_num_rows(res);
+
+    if(count > 0){ //
+        row = mysql_fetch_row(res);
+        int c = atoi(row[0]);
+        this->occupiedNum = c;
+    }
+    else{
+        std::cout<<124431<<std::endl;
+        this->occupiedNum = 0;
+    }
 }
 
 std::string Car::GetDate()

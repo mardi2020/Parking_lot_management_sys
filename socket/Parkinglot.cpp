@@ -60,8 +60,11 @@ int Parkinglot::GetSize()
 {
     return sizeof(occupiedarea);
 }
-void Parkinglot::PrintArray()
-{
+void Parkinglot::Print()
+{   
+    std::cout<<parkinglotNum<<std::endl;
+    std::cout<<address<<std::endl;
+    std::cout<<occupied<<' '<<space<<std::endl;
     for(int i = 0;i < this->space;i++)
         std::cout<<occupiedarea[i]<<' ';
     std::cout<<std::endl;
@@ -111,19 +114,19 @@ void Parkinglot::Setoccupiedarea(std::string pln)
     MYSQL_ROW row;
     std::vector<MYSQL_ROW> v1;
     std::string space = Getspace(pln);
-    std::string query = "SELECT location_c FROM car WHERE location_p = " + pln;
+    std::string query = "SELECT location_c FROM car WHERE location_p = " + pln + " and NOT location_p is NULL";
+    std::cout<<query<<std::endl;
     mysql_query(this->ConnPtr, query.c_str());
     res = mysql_store_result(this->ConnPtr);
+
     while ((row = mysql_fetch_row(res)) != NULL)
         v1.push_back(row);
-
     std::stringstream ss(space);
     int n;
     ss >> n;
 
     memset(this->occupiedarea, 0x00, sizeof(int) * n);
-
-    for (int i = 0; i < v1.size(); i++)
+    for (int i = 0; i < v1.size(); i++) //
     {
         this->occupiedarea[atoi(v1[i][0]) - 1] = 1;
     }

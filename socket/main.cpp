@@ -4,7 +4,7 @@
 #include "include/parkinglotinfo.h"
 #include "include/carinfo.h"
 #include <iostream>
-//#include <time.h> //차량 등록시 시간 추가
+//#include <time.h> 
 #include <cstring>
 #include <csignal>
 #include <string>
@@ -12,9 +12,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h> 
-#include <unistd.h> // 시스템 함수
+#include <unistd.h> 
 #include <pthread.h>
-//#include <signal.h>
 #include </usr/include/mariadb/mysql.h>
 
 #define endl '\n'
@@ -29,11 +28,12 @@
 MYSQL* ConnPtr; 
 message_format mess;
 int listen_fd, client_fd;
-char* ParsingData(char*buff, char*str);
-void *thread_function1(void *data);
-void *thread_function2(void *data);
-void *thread_function3(void *data);
-void *thread_function4(void *data);
+/*--thread function--*/
+void *SendParkinglotInfo(void *data);
+void *InsertCarData(void *data);
+void *SendCarInfo(void *data);
+void *SendExpense(void *data);
+void EmptyMessage();
 
 // ctrl+ c 시그널을 잡아 socket 닫기
 void signalHandler( int signum ) {
@@ -60,9 +60,10 @@ int main(){
     mysql_options(&Conn, MYSQL_INIT_COMMAND, "SET NAMES utf8");
     ConnPtr = mysql_real_connect(&Conn, HOST, USER, PASSWORD, DATABASE, PORT, (char*)NULL, 0);
 
-    if((listen_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+    if( (listen_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+        perror("socket() error");
         return 1;
-    
+    }
     memset((void *)&server_addr, 0x00, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(PORT_NUM);
@@ -86,29 +87,34 @@ int main(){
         client_fd = accept(listen_fd, (struct sockaddr *)&client_addr, &addrlen);
 
         if(client_fd < 0)
-            std::cout<<"accept() error"<<endl;
+            perror("accept() error");
         else{
             int recv_ = recv(client_fd, (message_format *)&mess, sizeof(mess), 0);
 
             std::cout<<"받은 메시지 : "<<mess.message_id<<", "<<mess.data<<", "<<mess.len<<endl;
 
             if(1 == mess.message_id){ // 주차장 정보 조회
-                pthread_create(&thread_id, NULL, thread_function1, (void *)&client_fd);
+                pthread_create(&thread_id, NULL, SendParkinglotInfo, (void *)&client_fd);
             }
             else if (2 == mess.message_id){ // 차량 등록
-                pthread_create(&thread_id, NULL, thread_function2, (void *)&client_fd);
+                pthread_create(&thread_id, NULL, InsertCarData, (void *)&client_fd);
             }
             else if(3 == mess.message_id){ 
-                pthread_create(&thread_id, NULL, thread_function3, (void *)&client_fd);
+                pthread_create(&thread_id, NULL, SendCarInfo, (void *)&client_fd);
             }
             else if(4 == mess.message_id){ // 차량 요금 정산
-                pthread_create(&thread_id, NULL, thread_function4, (void *)&client_fd);
+                pthread_create(&thread_id, NULL, SendExpense, (void *)&client_fd);
             }
         }
+        
+        pthread_detach(thread_id);
     }
+
+    mysql_free_result(res);
+    mysql_close(ConnPtr);
 }
 
-void *thread_function1(void *data){
+void *SendParkinglotInfo(void *data){
     int sockfd = *((int *) data);
     socklen_t addrlen;
     struct sockaddr_in client_addr;
@@ -118,51 +124,50 @@ void *thread_function1(void *data){
     Parkinglot PL(id, ConnPtr); 
     pl.number = atoi(mess.data);
     strcpy(pl.address, PL.Getaddress(id));
-    //pl.address = PL.Getaddress(id); 
     pl.occupied = PL.GetOccupied(id);
     std::string str = PL.Getspace(id);
     std::stringstream ssInt(str);
     int i = 0; ssInt >> i;
     pl.space = i;
-    PL.Setoccupiedarea(id);
+    PL.Setoccupiedarea(id); 
     memcpy(pl.occupiedarea, PL.GetArray(), PL.GetSize());
 
-    int s = (send(sockfd, (ParkingLot *)& pl, sizeof(pl), 0));
-    if (s < 0)
-        std::cout<<"send() error"<<endl;
-
+    send(sockfd, (ParkingLot *)& pl, sizeof(pl), 0);
     close(sockfd);
     std::cout<<"주차장 thread end"<<endl;
+    EmptyMessage();
 }
-void *thread_function3(void *data){ // 정보 조회용
+void *SendCarInfo(void *data){ // 정보 조회용
     int sockfd = *((int *) data);
     socklen_t addrlen;
     struct sockaddr_in client_addr;
     addrlen = sizeof(client_addr);
     car c; // structure
-    char id[11];
-    memset(id, 0x00, sizeof(id));
-    for(int i = 0; i < 10;i++)
-        id[i] = mess.data[i];
-    
+    char id[12];
+    strcpy(id, mess.data);
+    std::cout<<"id : "<<id<<endl;
+
     Car CAR(ConnPtr, id); // class
     strcpy(c.carnumber, CAR.GetCarnum());
-    CAR.SetOccupiedNum();
+    
+    CAR.SetOccupiedNum(); 
     CAR.SetParkingNum();
+
     c.occupiedNumber = CAR.GetOccupiedNum();
     c.parkingLotNumber =  CAR.GetParkingNum();
+
     send(sockfd, (car *)& c, sizeof(c), 0);
     close(sockfd);
     
     std::cout<<"차량 정보 thread end"<<endl;
+    EmptyMessage();
 }
 
-void *thread_function2(void *data){ // 차량 등록
+void *InsertCarData(void *data){ // 차량 등록
     int sockfd = *((int *) data);
     socklen_t addrlen;
     struct sockaddr_in client_addr;
     addrlen = sizeof(client_addr);
-    car c; // structure
 
     Parkinglot PL(std::to_string(mess.data[0]-48), ConnPtr);
     // 주차장 내 자리 정보
@@ -170,19 +175,22 @@ void *thread_function2(void *data){ // 차량 등록
     PL.Setoccupiedarea(std::to_string(mess.data[0]-48));
     int arr[10] = {0,};
     memcpy(arr, PL.GetArray(), PL.GetSize());
+    
     send(sockfd, arr, sizeof(arr), 0);
+    EmptyMessage();
 
     int recv_ = recv(client_fd, (message_format *)&mess, sizeof(mess), 0);
     std::cout<<mess.message_id<<' '<<mess.data<<' '<<mess.len<<endl;
 
-    char id[11];
+    char id[12];
     memset(id, 0x00, sizeof(id));
-    for(int i = 0; i < 10;i++)
+    int i = 0;
+    while(mess.data[i] != '_'){
         id[i] = mess.data[i];
-
+        i++;
+    }
     Car CAR(ConnPtr, id); // class
     CAR.SetParkinglotNum(n);
-    strcpy(c.carnumber, CAR.GetCarnum());
     CAR.Setlocation(mess.len, mess);
     CAR.Print(); //
     CAR.InsertDataInDB();
@@ -192,23 +200,33 @@ void *thread_function2(void *data){ // 차량 등록
     close(sockfd);
     
     std::cout<<"차량 thread end"<<endl;
+    EmptyMessage();
 }
 
-void *thread_function4(void *data){
+void *SendExpense(void *data){
     int sockfd = *((int *) data);
     socklen_t addrlen;
     struct sockaddr_in client_addr;
     addrlen = sizeof(client_addr);
-    char id[11];
-    memset(id, 0x00, sizeof(id));
-    for(int i = 0; i < 10;i++)
-        id[i] = mess.data[i];
+    char id[12]; 
+    memcpy(id, mess.data, sizeof(mess.data));
+
     Car car(ConnPtr, id);
     car.SettleupExpense();
-    char buff[101];
-    sprintf(buff,"%ld", car.GetToll());
-    int s = (send(sockfd, buff, sizeof(buff), 0));
+    int expense = car.GetToll();
+    // Socket operation on non-socket  error 고치기
+    int s = (send(sockfd, (int *)&expense, sizeof(expense), 0));
+    if (s < 0)
+        perror("send() error");
+        
     close(sockfd);
-    
     std::cout<<"요금 thread end"<<endl;
+    EmptyMessage();
+}
+
+
+void EmptyMessage(){
+    mess.message_id = 0;
+    mess.len = 0;
+    memset(mess.data, 0x00, sizeof(mess.data));
 }
