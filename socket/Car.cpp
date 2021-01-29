@@ -70,13 +70,12 @@ void Car::SetOccupiedNum(){ // db에서 가져오기
     res = mysql_store_result(ConnPtr);
     int count = mysql_num_rows(res);
 
-    if(count > 0){ //
+    if(count > 0){ 
         row = mysql_fetch_row(res);
         int c = atoi(row[0]);
         this->occupiedNum = c;
     }
     else{
-        std::cout<<124431<<std::endl;
         this->occupiedNum = 0;
     }
 }
@@ -111,31 +110,31 @@ int Car::GetToll(){
 
 void Car::SettleupExpense()
 {
-    OutDate = GetDate(); OutTime = GetTime();
-    std::string query = "UPDATE car SET outdate = '" + OutDate + "' WHERE number = '" + std::string(carnumber) + "'";
-    mysql_query(this->ConnPtr, query.c_str());
-
-    query = "UPDATE car SET outtime = '" + OutTime + "' WHERE number = '" + std::string(carnumber) + "'";
-    mysql_query(this->ConnPtr, query.c_str());
-
-    query = "SELECT intime FROM car WHERE number = '" + std::string(carnumber) + "'";
-    mysql_query(this->ConnPtr, query.c_str());
-
     MYSQL_RES *res;
     MYSQL_ROW row;
 
+    // 나간 날짜, 시간 저장하기
+    OutDate = GetDate(); OutTime = GetTime();
+    std::string query = "UPDATE car SET outdate = '" + OutDate + "' WHERE number = '" + std::string(carnumber) + "'";
+    mysql_query(this->ConnPtr, query.c_str());
+    query = "UPDATE car SET outtime = '" + OutTime + "' WHERE number = '" + std::string(carnumber) + "'";
+    mysql_query(this->ConnPtr, query.c_str());
+    // 들어온 시간 가져오기
+    query = "SELECT intime FROM car WHERE number = '" + std::string(carnumber) + "'";
+    mysql_query(this->ConnPtr, query.c_str());
     res = mysql_store_result(ConnPtr);
     row = mysql_fetch_row(res);
     std::string start_time = std::string(row[0]);
-
+    // 들어온 날짜 가져오기
     query = "SELECT indate FROM car WHERE number = '"+std::string(carnumber)+"'";
     mysql_query(ConnPtr, query.c_str());
     res = mysql_store_result(ConnPtr);
     row = mysql_fetch_row(res);
     std::string start_date = std::string(row[0]);
+
     int min = 0, hour = 0;
-    int min_in = (start_time[3] - 48) * 10 + (start_time[4] - 48); //35
-    int hour_in = (start_time[0] - 48) * 10 + (start_time[1] - 48); //14
+    int min_in = (start_time[3] - 48) * 10 + (start_time[4] - 48); 
+    int hour_in = (start_time[0] - 48) * 10 + (start_time[1] - 48); 
     int min_out = (OutTime[3] - 48) * 10 + (OutTime[4] - 48);
     int hour_out = ((OutTime[0] - 48) * 10 + (OutTime[1] - 48));
     if(OutDate != start_date){
@@ -148,7 +147,7 @@ void Car::SettleupExpense()
             min = min_out - min_in;
             hour = hour_out - hour_in;
         }
-        toll = (hour*60 + min) * 100;
+        this->toll = (hour*60 + min) * 100;
     }
     else{ // 당일날 정산
         if(min_out >= min_in){
@@ -159,7 +158,7 @@ void Car::SettleupExpense()
             min = (min_out + 60) - min_in;
             hour = (--hour_out) - hour_in;
         }
-        toll = (hour*60 + min)*100;
+        this->toll = (hour*60 + min)*100;
     }
     query = "UPDATE car SET toll = " + std::to_string(this->toll) + " WHERE number = '" + std::string(carnumber) + "'";
     mysql_query(this->ConnPtr, query.c_str());

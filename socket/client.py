@@ -1,5 +1,6 @@
 from socket import *
 from ctypes import *
+from struct import * # byte unpack
 
 TOTAL = 10
 PORT = 12345 
@@ -105,8 +106,7 @@ elif mess.message_id == 3 and command == 3:
 
 elif command == 4 :
     data = socket_client.recv(100)
-    print("요금 : ", data.decode('utf-8'))
-    print(data)
+    print("요금 : ", unpack('<I', data)[0])
     
 print("Closing socket")
 socket_client.close()

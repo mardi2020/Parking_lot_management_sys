@@ -115,7 +115,7 @@ void Parkinglot::Setoccupiedarea(std::string pln)
     std::vector<MYSQL_ROW> v1;
     std::string space = Getspace(pln);
     std::string query = "SELECT location_c FROM car WHERE location_p = " + pln + " and NOT location_p is NULL";
-    std::cout<<query<<std::endl;
+
     mysql_query(this->ConnPtr, query.c_str());
     res = mysql_store_result(this->ConnPtr);
 

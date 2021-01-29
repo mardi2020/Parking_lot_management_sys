@@ -117,7 +117,7 @@ int main(){
 void *SendParkinglotInfo(void *data){
     int sockfd = *((int *) data);
     socklen_t addrlen;
-    struct sockaddr_in client_addr;
+    sockaddr_in client_addr;
     addrlen = sizeof(client_addr);
     ParkingLot pl;
     std::string id = std::string(mess.data);
@@ -140,12 +140,11 @@ void *SendParkinglotInfo(void *data){
 void *SendCarInfo(void *data){ // 정보 조회용
     int sockfd = *((int *) data);
     socklen_t addrlen;
-    struct sockaddr_in client_addr;
+    sockaddr_in client_addr;
     addrlen = sizeof(client_addr);
     car c; // structure
     char id[12];
     strcpy(id, mess.data);
-    std::cout<<"id : "<<id<<endl;
 
     Car CAR(ConnPtr, id); // class
     strcpy(c.carnumber, CAR.GetCarnum());
@@ -206,14 +205,18 @@ void *InsertCarData(void *data){ // 차량 등록
 void *SendExpense(void *data){
     int sockfd = *((int *) data);
     socklen_t addrlen;
-    struct sockaddr_in client_addr;
+    sockaddr_in client_addr;
     addrlen = sizeof(client_addr);
-    char id[12]; 
-    memcpy(id, mess.data, sizeof(mess.data));
 
+    // 차량 번호 복사
+    char id[12]; 
+    //memcpy(id, mess.data, sizeof(mess.data));
+    strcpy(id, mess.data);
+    // 클라이언트로부터 받은 차량 번호로 객체 생성
     Car car(ConnPtr, id);
-    car.SettleupExpense();
+    car.SettleupExpense(); // 비용계산
     int expense = car.GetToll();
+    std::cout<<expense<<endl;
     // Socket operation on non-socket  error 고치기
     int s = (send(sockfd, (int *)&expense, sizeof(expense), 0));
     if (s < 0)
