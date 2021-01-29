@@ -4,7 +4,6 @@
 #include "include/parkinglotinfo.h"
 #include "include/carinfo.h"
 #include <iostream>
-//#include <time.h> 
 #include <cstring>
 #include <csignal>
 #include <string>
@@ -47,11 +46,11 @@ int main(){
     
     socklen_t addrlen;
     pthread_t thread_id;
-    struct sockaddr_in server_addr, client_addr;
+    sockaddr_in server_addr, client_addr;
 
-    MYSQL Conn; // mysql 정보를 담을 구조체
-    MYSQL_RES* res; // 쿼리 결과를 담는 구조체 포인터
-    MYSQL_ROW row; // 쿼리 결과의 행을 담는 구조체
+    MYSQL Conn; 
+    MYSQL_RES* res; 
+    MYSQL_ROW row; 
     signal( SIGPIPE, SIG_IGN );
     signal(SIGINT, signalHandler); // 컨트롤 C로 끌 때 소켓 종료
 
@@ -69,7 +68,6 @@ int main(){
     server_addr.sin_port = htons(PORT_NUM);
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     
-    // bind(소켓 디스크립터, IP, 주소 길이)
     if(::bind(listen_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0){
         perror("bind() error");
         return 1;

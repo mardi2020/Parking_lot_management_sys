@@ -141,6 +141,7 @@ void Parkinglot::Updateoccupied()
 
 void Parkinglot::WriteData(std::string FILE){
     std::string query = "SELECT * INTO OUTFILE '"+FILE+"'"+" FIELDS TERMINATED BY ',' ENCLOSED BY '\"' ESCAPED BY '\\' LINES TERMINATED BY '\n' FROM parkinglot";
+    mysql_query(ConnPtr, query.c_str());
 }
 
 void Parkinglot::ReadData(std::string FILE){

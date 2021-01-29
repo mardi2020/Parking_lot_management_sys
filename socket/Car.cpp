@@ -28,13 +28,7 @@ char* Car::GetCarnum(){
 }
 void Car::Setlocation(int len, message_format m)
 {
-    int c;
-
-    for (int i = 0; i < m.len; i++)
-    {
-        if (i == m.len - 1)
-            c = m.data[i] - 48;  
-    }
+    int c = m.data[m.len+1] - 48;
     this->occupiedNum = c;
 }
 void Car::SetParkingNum(){ // db에서 가져오기
