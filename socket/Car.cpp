@@ -3,10 +3,8 @@
 #include <cstring>
 #include <vector>
 #include <ctime>
-#include </usr/include/mariadb/mysql.h>
 #include "include/Car.h"
 #include "include/message.h"
-//#include "Parkinglot.cpp"
 
 Car::Car(MYSQL *ConnPtr, char carnum[])
 {
@@ -177,4 +175,20 @@ void Car::Print(){
         std::cout<<parkinglotNum<<std::endl;
         std::cout<<occupiedNum<<std::endl;
         std::cout<<InDate<<' '<<InTime<<std::endl;
-    }
+}
+
+void Car::DataIntoVector(){
+	std::string query = "SELECT * FROM Car";
+	mysql_query(ConnPtr, query.c_str());
+	MYSQL_RES *res;
+    	MYSQL_ROW row;
+	res = mysql_store_result(ConnPtr);
+
+	while((row = mysql_fetch_row(res)) != NULL){
+		store.push_back(row);
+	}
+}
+
+std::vector<MYSQL_ROW> Car::GetVector(){
+	return this->store;
+}

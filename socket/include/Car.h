@@ -5,12 +5,11 @@
 #include <cstring>
 #include <vector>
 #include <ctime>
-#include </usr/include/mariadb/mysql.h>
+#include </usr/include/mysql/mysql.h>
 #include "message.h"
 
 class Car{
 public:
-    // 처음 들어갈때 
     Car(MYSQL* ConnPtr, char carnum[]);
     Car(){}
     ~Car();
@@ -26,8 +25,9 @@ public:
     void SetParkingNum();
     void SetOccupiedNum();
     void InsertDataInDB();
-
+    void DataIntoVector();
     void Print();
+    std::vector<MYSQL_ROW> GetVector();
 private:
     int parkinglotNum;
     int occupiedNum;
@@ -38,5 +38,6 @@ private:
     std::string InTime;
     std::string OutDate;
     std::string OutTime;
+    std::vector<MYSQL_ROW> store;
 };
 #endif

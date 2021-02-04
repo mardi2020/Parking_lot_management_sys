@@ -5,7 +5,7 @@
 #include <string.h>
 #include <vector>
 #include <sstream>
-#include </usr/include/mariadb/mysql.h>
+#include </usr/include/mysql/mysql.h>
 #include "Car.h"
 #define MAXSIZE 10
 
@@ -16,6 +16,8 @@ public:
 
     // 주차장 정보 조회용
     Parkinglot(std::string parkinglotnum, MYSQL* ptr);
+    
+    Parkinglot(){}
 
     ~Parkinglot();
 
@@ -41,7 +43,8 @@ public:
 
     void WriteData(std::string FILE);
     void ReadData(std::string FILE);
-    
+    void DataIntoVector(); 
+    std::vector<MYSQL_ROW> GetVector();
 private:
     std::string parkinglotNum; 
     char address[256];
@@ -49,6 +52,7 @@ private:
     int space;
     int occupiedarea[MAXSIZE];
     MYSQL* ConnPtr;
+    std::vector<MYSQL_ROW> store;
 };
 
 #endif

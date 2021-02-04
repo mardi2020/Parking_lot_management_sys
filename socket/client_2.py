@@ -2,7 +2,7 @@ from socket import *
 from ctypes import *
 from struct import * # byte unpack
 
-ID = "1"
+ID = "2"
 TOTAL = 10
 PORT = 12345 
 

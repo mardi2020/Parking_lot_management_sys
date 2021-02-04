@@ -3,10 +3,11 @@
 CC = g++
 
 INC = 
-LIBS = -lmariadbclient -lpthread
+LIBS = -lmysqlclient -lpthread
 CFLAGS = -g $(INC)
 
 OBJS = Car.o main.o Parkinglot.o
+
 SRCS = Car.cpp main.cpp Parkinglot.cpp
 
 TARGET = server

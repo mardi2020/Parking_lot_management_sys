@@ -2,7 +2,6 @@
 #include <string.h>
 #include <vector>
 #include <sstream>
-#include </usr/include/mariadb/mysql.h>
 #include "include/Car.h"
 #include "include/Parkinglot.h"
 #define MAXSIZE 10
@@ -147,4 +146,19 @@ void Parkinglot::WriteData(std::string FILE){
 void Parkinglot::ReadData(std::string FILE){
     std::string query = "LOAD DATA LOCAL INFILE '" + FILE + "' "+"INTO TABLE parkinglot CHARACTER SET UTF8 FIELDS TERMINATED BY ','";
     mysql_query(ConnPtr, query.c_str());
+}
+
+void Parkinglot::DataIntoVector(){
+	std::string query = "SELECT * FROM parkinglot";
+	mysql_query(ConnPtr, query.c_str());
+	MYSQL_RES *res;
+        MYSQL_ROW row;
+	res = mysql_store_result(ConnPtr);
+	while((row = mysql_fetch_row(res)) != NULL){
+		this->store.push_back(row);
+	}
+	
+}
+std::vector<MYSQL_ROW> Parkinglot::GetVector(){
+	return this->store;
 }
