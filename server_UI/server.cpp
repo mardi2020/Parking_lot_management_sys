@@ -52,24 +52,52 @@ void signalHandler( int signum ) {
     exit(signum);  
 }
 
-std::vector<MYSQL_ROW> Store_p(){
+std::string Store_c(){
     std::vector<MYSQL_ROW> pv;
-    std::string query = "select * from car";
+    std::string query = "";
+    std::string str = "";
+    query = "SELECT number, indate, intime, location_c, location_p FROM car WHERE location_c IS NOT NULL";
     mysql_query(ConnPtr, query.c_str());
     res = mysql_store_result(ConnPtr);
-     while((row = mysql_fetch_row(res)) != NULL)
-            pv.push_back(row);
-    return pv;
+    int fields = mysql_num_fields(res);
+    while((row = mysql_fetch_row(res)) != NULL){
+        for(int i = 0 ; i < fields ; i++){
+            str += std::string(row[i]);
+            str += " ";
+         }
+         str += '\n';
+     }
+    mysql_free_result(res);
+    query = "SELECT number, indate, intime, outdate, outtime, toll FROM car WHERE location_c IS NULL";
+    mysql_query(ConnPtr, query.c_str());
+    res = mysql_store_result(ConnPtr);
+    fields = mysql_num_fields(res);
+    while((row = mysql_fetch_row(res)) != NULL){
+        for(int i = 0 ; i < fields ; i++){
+            str += std::string(row[i]);
+            str += " ";
+         }
+         str += '\n';
+    }
+    return str;
 }
-std::vector<MYSQL_ROW> Store_c(){
+std::string Store_p(){
     std::vector<MYSQL_ROW> cv;
     std::string query = "select * from parkinglot";
     mysql_query(ConnPtr, query.c_str());
     res = mysql_store_result(ConnPtr);
-    while((row = mysql_fetch_row(res)) != NULL)
-        cv.push_back(row);
-    return cv;
+    int fields = mysql_num_fields(res);
+    std::string str = "";
+    while((row = mysql_fetch_row(res)) != NULL){
+        for(int i = 0 ; i < fields ; i++){
+            str += std::string(row[i]);
+            str += " ";
+        }
+        str += '\n';
+    }
+    return str;
 }
+
 
 void CloseServer(){
     std::cout<< "Closing Sockets" << endl;
@@ -322,7 +350,7 @@ bool Isout(std::string keyword, std::string table){
     mysql_query(ConnPtr, query.c_str());
     MYSQL_RES* res = mysql_store_result(ConnPtr);
     int num = mysql_num_rows(res);
-    if (num <= 0){
+    if (num <= 1){
         return true;
     }
     return false;
