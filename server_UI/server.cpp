@@ -30,6 +30,8 @@ MYSQL* ConnPtr;
 message_format mess;
 int listen_fd, client_fd;
 int client_cnt = 0;
+int total_len = 0;
+std::string base64_image = "";
 socklen_t addrlen;
 pthread_t thread_id;
 sockaddr_in server_addr, client_addr;
@@ -166,34 +168,31 @@ void *SendCarInfo(void *data){ // 정보 조회용
 
 void *InsertCarData(void *data){ // 차량 등록
     int sockfd = *((int *) data);
-    socklen_t addrlen;
-    struct sockaddr_in client_addr;
-    addrlen = sizeof(client_addr);
 
-    Parkinglot PL(std::to_string(mess.data[0]-48), ConnPtr);
-    // 주차장 내 자리 정보
+    // send recognized car number
+    char id[] = "22가 2222";
+    send(sockfd, id, sizeof(id), 0);
+
+    // received request(2, parkinglot number, 1)
+    recv(sockfd, (message_format *)&mess, sizeof(mess), 0);
     int n = mess.data[0]-48; // 주차장 번호
-    PL.Setoccupiedarea(std::to_string(mess.data[0]-48));
+
+    Parkinglot PL(std::to_string(n), ConnPtr);
+    // send 주차장 내 자리 정보
+    PL.Setoccupiedarea(std::to_string(n));
     int arr[10] = {0,};
     memcpy(arr, PL.GetArray(), PL.GetSize());
-    
     send(sockfd, arr, sizeof(arr), 0);
+
     EmptyMessage();
+    // received request(2, location number, 1)
+    recv(sockfd, (message_format *)&mess, sizeof(mess), 0);
+    int loc = atoi(mess.data);
 
-    int recv_ = recv(client_fd, (message_format *)&mess, sizeof(mess), 0);
-    std::cout<<mess.message_id<<' '<<mess.data<<' '<<mess.len<<endl;
-
-    char id[12];
-    memset(id, 0x00, sizeof(id));
-    int i = 0;
-    while(mess.data[i] != '_'){
-        id[i] = mess.data[i];
-        i++;
-    }
     Car CAR(ConnPtr, id); // class
     CAR.SetParkinglotNum(n);
-    CAR.Setlocation(mess.len, mess);
-    CAR.Print(); //
+    CAR.Setlocation(loc);
+    CAR.Print();
     CAR.InsertDataInDB();
     
     char buff[8] = "Success";
@@ -237,28 +236,71 @@ void EmptyMessage(){
     memset(mess.data, 0x00, sizeof(mess.data));
 }
 
+struct tmp{
+    int client_fd;
+    int mess_len;
+};
+
+void DecodeBase64(std::string str){
+
+}
+
+void *RecvPhoto(void *data){
+    struct tmp t = *((tmp *) data);
+    int sock_fd = t.client_fd;
+    int len = t.mess_len;
+    socklen_t addrlen;
+    sockaddr_in client_addr;
+    addrlen = sizeof(client_addr);
+
+    base64_image += mess.data;
+
+    // decode base64 image
+    if(base64_image.size() == total_len){
+        unsigned char* dout = (unsigned char*)malloc(BASE64_DECODE_OUT_SIZE(total_len));
+        base64_decode(base64_image.c_str(), base64_image.size(), dout);
+
+    }
+
+}
+
 
 void *handle_message(void* arg) {
     int client_fd = (int) *((int*) arg);
-    recv(client_fd, (message_format *)&mess, sizeof(mess), 0);
+    std::cout << "Client Connected!\n";
+    while(true){
+        int len = recv(client_fd, (message_format *)&mess, sizeof(mess), 0);
+        if (len<=0)
+            continue;
+        std::cout<<"message : "<<mess.message_id<<", "<<mess.data<<", "<<mess.len<<endl;
 
-	std::cout<<"message : "<<mess.message_id<<", "<<mess.data<<", "<<mess.len<<endl;
+        if(1 == mess.message_id){
+            pthread_create(&thread[1], NULL, SendParkinglotInfo, (void *)&client_fd);
+            pthread_join(thread[1], NULL);
+        }
+        else if(2 == mess.message_id){
+            pthread_create(&thread[2], NULL, InsertCarData, (void *)&client_fd);
+            pthread_join(thread[2], NULL);
+        }
+        else if(3 == mess.message_id){
+            pthread_create(&thread[3], NULL, SendCarInfo, (void *)&client_fd);
+            pthread_join(thread[3], NULL);
+        }
+        else if(4 == mess.message_id){
+            pthread_create(&thread[4], NULL, SendExpense, (void *)&client_fd);
+            pthread_join(thread[4], NULL);
+        }
+        else if(5 == mess.message_id){
+            tmp t;
+            t.client_fd = client_fd;
+            t.mess_len = mess.len;
+            pthread_create(&thread[4], NULL, RecvPhoto, (void *)&t);
+            pthread_join(thread[4], NULL);
 
-	if(1 == mess.message_id){
-		pthread_create(&thread[1], NULL, SendParkinglotInfo, (void *)&client_fd);
-        pthread_join(thread[1], NULL);
-    }
-	else if(2 == mess.message_id){
-		pthread_create(&thread[2], NULL, InsertCarData, (void *)&client_fd);
-        pthread_join(thread[2], NULL);
-    }
-	else if(3 == mess.message_id){
-		pthread_create(&thread[3], NULL, SendCarInfo, (void *)&client_fd);
-        pthread_join(thread[3], NULL);
-    }
-	else if(4 == mess.message_id){
-		pthread_create(&thread[4], NULL, SendExpense, (void *)&client_fd);
-        pthread_join(thread[4], NULL);
+        }
+        else if(6 == mess.message_id){
+            total_len = mess.len;
+        }
     }
 }
 
@@ -297,6 +339,7 @@ void *connectSOCKET(void *data){
 		}
 		pthread_detach(thread_id);
 	}
+
 	mysql_free_result(res);
 	mysql_close(ConnPtr);
 }

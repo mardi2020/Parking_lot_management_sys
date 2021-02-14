@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QFileDialog>
 #include <QString>
 #include <QTimer>
 #include <QVector>
@@ -30,11 +31,13 @@ private slots:
 
     void on_pushButton_4_clicked();
 
-    void on_readfile_button_clicked();
+    //void on_readfile_button_clicked();
 
     void on_writefile_button_clicked();
 
     void radioFunction_1();
+
+    void Readfile();
 private:
     Ui::MainWindow *ui;
 

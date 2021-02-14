@@ -10,12 +10,30 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent), ui(new Ui::MainWin
     //connect(this,SIGNAL(), this,SLOT(on_pushButton_clicked()));
     connect(ui->pl_radio_button, SIGNAL(clicked()), this, SLOT(radioFunction_1()));
     connect(ui->car_radio_button, SIGNAL(clicked()), this, SLOT(radioFunction_1()));
+    connect(ui->readfile_button, SIGNAL(clicked()), this, SLOT(Readfile()));
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
 }
+
+void MainWindow::Readfile()
+{
+    ui->resultbar->setText("csv 파일을 불러와 저장합니다.");
+    QString strFilter = "csv file (*.csv) ;; All files (*.*)";
+    QString strFileName = QFileDialog::getOpenFileName(this, "Open a file", QDir::homePath() , strFilter);
+
+    qDebug()<<strFileName<<endl;
+
+    std::string res = ReadData(strFileName.toStdString());
+
+    if(strFileName != "")
+        ui->resultbar->setText("Success");
+    else
+        ui->resultbar->setText("Failed");
+}
+
 
 void MainWindow::on_shutdown_clicked()
 {
@@ -69,6 +87,7 @@ void MainWindow::on_pushButton_4_clicked()
     ui->resultbar->setText("Success");
 }
 
+/*
 void MainWindow::on_readfile_button_clicked()
 {
     std::string filedir = "/tmp/";
@@ -78,15 +97,16 @@ void MainWindow::on_readfile_button_clicked()
     ui->resultbar->setText("Success");
 
 }
+*/
 
 void MainWindow::on_writefile_button_clicked()
 {
-
     std::string filedir = "/tmp/";
     std::string filename = "output.csv";
     std::string res = WriteData(filedir+filename);
     ui->resultbar->setText(QString(res.c_str()));
-    ui->resultbar->setText("Success");
+    sleep(1);
+    ui->resultbar->setText("Success : /tmp/output.csv로 저장");
 }
 
 
