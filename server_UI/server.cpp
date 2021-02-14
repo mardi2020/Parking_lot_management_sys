@@ -3,6 +3,7 @@
 #include "Parkinglot.h"
 #include "parkinglotinfo.h"
 #include "carinfo.h"
+#include "base64.h"
 #include <iostream>
 #include <cstring>
 #include <csignal>
