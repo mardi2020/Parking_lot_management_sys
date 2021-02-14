@@ -1,12 +1,12 @@
 from socket import *
 from struct import *
 from message_format import *
-from array import *
+from location import location
 from parkinglot import *
 from Car import *
 import base64
 
-ID = 1
+ID = "1"
 PORT = 12345
 
 class Application :
@@ -36,25 +36,39 @@ class Application :
         return pl, num, address, space, total, arr
 
     def Requestspace(self):
+        # send parking lot number
         mess = message_format()
         mess.message_id = 2
         data = ID
         mess.len = len(ID)
         mess.data = bytes(data + '\0', 'utf-8')
         self.socket_client.send(mess)
-
-        buff = self.socket_client.recv(sizeof(array))
-        arr = array.from_buffer_copy(buff)
+        #receive space..
+        buff = self.socket_client.recv(sizeof(location))
+        arr = location.from_buffer_copy(buff)
         space = arr.arr[:]
 
         return space
 
-    def AddCar(self):
+    def RecvCarnumber(self) :
+        # request car number
         mess = message_format()
         mess.message_id = 2
-        data = "222가 2222" # 나중에 인식되어 나온 값으로 변경
+        data = "request car number"
         mess.len = len(data)
         mess.data = bytes(data + '\0', 'utf-8')
+        self.socket_client.send(mess)
+        # receive car number
+        data = self.socket_client.recv(12)
+        carnum = data.decode()
+        return carnum
+
+
+    def AddCar(self, loc):
+        mess = message_format()
+        mess.message_id = 2
+        mess.len = len(loc)
+        mess.data = bytes(loc + '\0', 'utf-8')
         self.socket_client.send(mess)
     
     def Recvresult(self) :
@@ -106,12 +120,12 @@ class Application :
     def Send2Server(self, path):
         with open(path, "rb") as imageFile:
             str_ = base64.b64encode(imageFile.read())
-        
+        print(str_)
         ll = len(str_)
         mess = message_format()
-        mess.message_id = 5
+        mess.message_id = 6
         mess.len = ll
-        data = 'encode base64'
+        data = 'encoded base64 image'
         mess.data = bytes(data+'\0', 'utf-8')
         self.socket_client.send(mess)
         self.socket_client.close()
