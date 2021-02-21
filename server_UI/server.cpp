@@ -170,8 +170,8 @@ void *InsertCarData(void *data){ // 차량 등록
     int sockfd = *((int *) data);
 
     // send recognized car number
-    char id[] = "22가 2222";
-    send(sockfd, id, sizeof(id), 0);
+    //char id[] = "22가 2222";
+    //send(sockfd, id, sizeof(id), 0);
 
     // received request(2, parkinglot number, 1)
     recv(sockfd, (message_format *)&mess, sizeof(mess), 0);
@@ -290,6 +290,7 @@ void *handle_message(void* arg) {
             pthread_create(&thread[4], NULL, SendExpense, (void *)&client_fd);
             pthread_join(thread[4], NULL);
         }
+        /*
         else if(5 == mess.message_id){
             tmp t;
             t.client_fd = client_fd;
@@ -301,6 +302,7 @@ void *handle_message(void* arg) {
         else if(6 == mess.message_id){
             total_len = mess.len;
         }
+        */
     }
 }
 
