@@ -118,8 +118,7 @@ void server(){
     sleep(3);
 }
 
-void *SendParkinglotInfo(void *data){
-    int sockfd = *((int *) data);
+void SendParkinglotInfo(message_format mess, int sockfd){
     socklen_t addrlen;
     sockaddr_in client_addr;
     addrlen = sizeof(client_addr);
@@ -135,14 +134,14 @@ void *SendParkinglotInfo(void *data){
     pl.space = i;
     PL.Setoccupiedarea(id); 
     memcpy(pl.occupiedarea, PL.GetArray(), PL.GetSize());
-
-    send(sockfd, (ParkingLot *)& pl, sizeof(pl), 0);
-    close(sockfd);
+    int arr[10] = {0,};
+    memcpy(arr, PL.GetArray(), PL.GetSize());
+    send(sockfd, arr, sizeof(arr), 0);
+   // send(sockfd, (ParkingLot *)& pl, sizeof(pl), 0);
     std::cout<<"주차장 thread end"<<endl;
     EmptyMessage();
 }
-void *SendCarInfo(void *data){ // 정보 조회용
-    int sockfd = *((int *) data);
+void SendCarInfo(message_format mess, int sockfd){ // 정보 조회용
     socklen_t addrlen;
     sockaddr_in client_addr;
     addrlen = sizeof(client_addr);
@@ -160,51 +159,56 @@ void *SendCarInfo(void *data){ // 정보 조회용
     c.parkingLotNumber =  CAR.GetParkingNum();
 
     send(sockfd, (car *)& c, sizeof(c), 0);
-    close(sockfd);
     
     std::cout<<"차량 정보 thread end"<<endl;
     EmptyMessage();
 }
 
-void *InsertCarData(void *data){ // 차량 등록
-    int sockfd = *((int *) data);
+void InsertCarData(message_format mess, int sockfd){ // 차량 등록
 
     // send recognized car number
     //char id[] = "22가 2222";
     //send(sockfd, id, sizeof(id), 0);
 
     // received request(2, parkinglot number, 1)
-    recv(sockfd, (message_format *)&mess, sizeof(mess), 0);
-    int n = mess.data[0]-48; // 주차장 번호
+    message_format mess_pln;
+    message_format mess_carnum;
 
-    Parkinglot PL(std::to_string(n), ConnPtr);
+    recv(sockfd, (message_format *)&mess_pln, sizeof(mess_pln), 0);
+    recv(sockfd, (message_format *)&mess_carnum, sizeof(mess_carnum), 0);
+    //recv(sockfd, (message_format *)&mess, sizeof(mess), 0);
+    int n = atoi(mess_pln.data); // 주차장 번호
+
+    //Parkinglot PL(std::to_string(n), ConnPtr);
     // send 주차장 내 자리 정보
-    PL.Setoccupiedarea(std::to_string(n));
-    int arr[10] = {0,};
-    memcpy(arr, PL.GetArray(), PL.GetSize());
-    send(sockfd, arr, sizeof(arr), 0);
+    //PL.Setoccupiedarea(std::to_string(n));
+    //int arr[10] = {0,};
+    //memcpy(arr, PL.GetArray(), PL.GetSize());
+    //send(sockfd, arr, sizeof(arr), 0);
+
 
     EmptyMessage();
-    // received request(2, location number, 1)
-    recv(sockfd, (message_format *)&mess, sizeof(mess), 0);
-    int loc = atoi(mess.data);
+    // received request(2, location number, 1)=
+    int loc = atoi(mess.data); // jucha wichi
 
-    Car CAR(ConnPtr, id); // class
+
+    Car CAR(ConnPtr, mess_carnum.data); // class
     CAR.SetParkinglotNum(n);
     CAR.Setlocation(loc);
     CAR.Print();
     CAR.InsertDataInDB();
-    
-    char buff[8] = "Success";
-    (send(sockfd, buff, sizeof(buff), 0));
-    close(sockfd);
+
+    message_format mess_result;
+    mess_result.message_id = 0;
+    strcpy(mess_result.data, "Success");
+    mess_result.len = strlen(mess_result.data);
+    (send(sockfd, (message_format *)&mess_result, sizeof(message_format), 0));
     
     std::cout<<"차량 thread end"<<endl;
     EmptyMessage();
 }
 
-void *SendExpense(void *data){
-    int sockfd = *((int *) data);
+void SendExpense(message_format mess, int sockfd){
     socklen_t addrlen;
     sockaddr_in client_addr;
     addrlen = sizeof(client_addr);
@@ -241,9 +245,7 @@ struct tmp{
     int mess_len;
 };
 
-void DecodeBase64(std::string str){
 
-}
 
 void *RecvPhoto(void *data){
     struct tmp t = *((tmp *) data);
@@ -270,27 +272,25 @@ void *handle_message(void* arg) {
     std::cout << "Client Connected!\n";
     while(true){
         int len = recv(client_fd, (message_format *)&mess, sizeof(mess), 0);
-        if (len<=0)
-            continue;
+        if (len<0){
+            std::cout << strerror(errno) << endl;
+            close(client_fd);
+            break;
+         }
         std::cout<<"message : "<<mess.message_id<<", "<<mess.data<<", "<<mess.len<<endl;
 
         if(1 == mess.message_id){
-            pthread_create(&thread[1], NULL, SendParkinglotInfo, (void *)&client_fd);
-            pthread_join(thread[1], NULL);
+            SendParkinglotInfo(mess, client_fd);
         }
         else if(2 == mess.message_id){
-            pthread_create(&thread[2], NULL, InsertCarData, (void *)&client_fd);
-            pthread_join(thread[2], NULL);
+            InsertCarData(mess, client_fd);
         }
         else if(3 == mess.message_id){
-            pthread_create(&thread[3], NULL, SendCarInfo, (void *)&client_fd);
-            pthread_join(thread[3], NULL);
+            SendCarInfo(mess, client_fd);
         }
         else if(4 == mess.message_id){
-            pthread_create(&thread[4], NULL, SendExpense, (void *)&client_fd);
-            pthread_join(thread[4], NULL);
+            SendExpense(mess, client_fd);
         }
-        /*
         else if(5 == mess.message_id){
             tmp t;
             t.client_fd = client_fd;
@@ -302,7 +302,6 @@ void *handle_message(void* arg) {
         else if(6 == mess.message_id){
             total_len = mess.len;
         }
-        */
     }
 }
 
