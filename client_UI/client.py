@@ -9,10 +9,12 @@ import base64
 ID = "1"
 PORT = 12345
 
+IP = "192.168.164.129"
+
 class Application :
     def __init__(self):
         self.socket_client = socket(AF_INET, SOCK_STREAM)
-        self.socket_client.connect(('127.0.0.1', PORT))
+        self.socket_client.connect((IP, PORT))
         
 
     def RequestPLinfo(self):
@@ -23,6 +25,12 @@ class Application :
         mess.data = bytes(data +'\0', 'utf-8')
 
         self.socket_client.send(mess)
+        
+        buff = self.socket_client.recv(sizeof(location))
+
+        arr = location.from_buffer_copy(buff)
+        space = arr.arr[:]
+        return space
 
     def RecvPLinfo(self):
         buff = self.socket_client.recv(sizeof(ParkingLot))
@@ -49,7 +57,7 @@ class Application :
         space = arr.arr[:]
 
         return space
-
+    """
     def RecvCarnumber(self) :
         # request car number
         mess = message_format()
@@ -62,24 +70,38 @@ class Application :
         data = self.socket_client.recv(12)
         carnum = data.decode()
         return carnum
+    """
 
-
-    def AddCar(self, loc):
+    def AddCar(self, loc, carnum):
         mess = message_format()
         mess.message_id = 2
         mess.len = len(loc)
         mess.data = bytes(loc + '\0', 'utf-8')
+
+        mess_pln = message_format()
+        mess_pln.message_id = 8
+        mess_pln.len = len(ID)
+        mess_pln.data = bytes(ID + '\0', 'utf-8')
+
+        mess_carnum = message_format()
+        mess_carnum.message_id = 9
+        mess_carnum.len = len(carnum)
+        mess_carnum.data = bytes(carnum + '\0', 'utf-8')
+        
         self.socket_client.send(mess)
-    
+        self.socket_client.send(mess_pln)
+        self.socket_client.send(mess_carnum)
+
+        self.socket_client.recv(sizeof(message_format))
     def Recvresult(self) :
         buff = self.socket_client.recv(8)
         
         return buff.decode() # 주차 성공결과
 
-    def RequestCarinfo(self):
+    def RequestCarinfo(self, carnum):
         mess = message_format()
         mess.message_id = 3
-        data = "123가 1234" # 이것도 나중에 변경
+        data = carnum # 이것도 나중에 변경
         mess.len = len(data)
         mess.data = bytes(data + '\0', 'utf-8')
         self.socket_client.send(mess)
@@ -93,10 +115,10 @@ class Application :
 
         return car, plnum, location, carnum
     
-    def SettleupExpense(self):
+    def SettleupExpense(self, carnum):
         mess = message_format() 
         mess.message_id = 4
-        data = "11가 1111"
+        data = carnum
         mess.len = len(data)
         mess.data = bytes(data +'\0', 'utf-8')
         self.socket_client.send(mess)
@@ -116,7 +138,7 @@ class Application :
         mess.data = bytes(data + '\0', 'utf-8')
         self.socket_client.send(mess)
 
-    # client to server( use base64 )
+    # client to server( use base64 ) - 안씀
     def Send2Server(self, path):
         with open(path, "rb") as imageFile:
             str_ = base64.b64encode(imageFile.read())

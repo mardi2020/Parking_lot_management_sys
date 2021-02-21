@@ -25,13 +25,6 @@ from matplotlib.ticker import NullLocator
 import cv2
 import numpy as np
 
-from PyQt5.QtWidgets import *
-from PyQt5 import uic, QtCore
-from PyQt5.QtGui import QPixmap
-from client import *
-
-
-form_class = uic.loadUiType('untitled_.ui')[0]
 
 # 모델 불러오기 (Darknet)
 model = Darknet("config/yolov3-custom.cfg", img_size=416) # 번호판 탐지
@@ -43,11 +36,11 @@ model2.load_state_dict(torch.load("checkpoints_number/yolov3_ckpt_99.pth"))
 model.eval()
 model2.eval()
 
-hangul = { 'ga':"가",'na':"나", 'da':"다", 'ra':"라", 'ma':"마", 'ba':"바", 'sa':"사", 'a':"아", 'ja':"자", 'geo':"조",
-           'neo':"너", 'deo':"더", 'reo':"러", 'meo':"머", 'beo':"버", 'seo':"서", 'eo':"어", 'jeo':"저",
-           'go':"고", 'no':'노', 'do':'도', 'ro':'로', 'mo':'모', 'bo':'보', 'so':'소', 'o':'오', 'jo':'조',
-           'gu':'구', 'nu':'누', 'du':'두', 'ru':'루', 'mu':'무', 'bu':'부', 'su':'수', 'u':'우', 'ju':"주",
-           'ha':"하", 'heo':"허", 'ho':"호"}
+# 이미지 리드
+image1 = cv2.imread("data/custom/images/192.168.0.101_20190720-11374138_Motion.jpg")
+image2 = cv2.imread("data/custom/images/192.168.0.101_20190720-11452888_Motion.jpg")
+image3 = cv2.imread("data/custom/images/192.168.0.101_20190725-07062822_Motion.jpg")
+image4 = cv2.imread("data/custom/images/192.168.0.101_20190814-07514322_Motion.jpg")
 
 
 # model : 번호판 탐지 모델
@@ -107,78 +100,24 @@ def generate_plate_num(model, model2, imagedata):
             result.append(final_str)
     print(result)
     return result
-
-class WindowClass(QMainWindow, form_class) :
-    def __init__(self):
-        super().__init__()
-        self.setupUi(self)
-
-        # 버튼 연결
-        self.findfile_btn.clicked.connect(self.find_slot)
-        self.settleup_btn.clicked.connect(self.settleup_slot)
-        self.parking_btn.clicked.connect(self.parking_slot)
-        self.pushButton.clicked.connect(self.close_slot)
-        self.pushButton_2.clicked.connect(self.Info_slot)
-        self.App = Application()
-
-    def close_slot(self) :
-        sys.exit()
-
-    def find_slot(self) :
-        fname, _ = QFileDialog.getOpenFileName(self, 'Open file', './', 'Image files (*.jpg *.gif, *jfif)')
-
-        if fname and os.path.isfile(fname):
-            print(fname)
-            pixmap = QPixmap(fname)
-            pixmap =  pixmap.scaled(pixmap.width() // 3, pixmap.height() // 3, QtCore.Qt.KeepAspectRatio)
-            self.label_6.setPixmap(pixmap)
-
-            # 사진 경로를 모델로 전송
-            imagedata = cv2.imread(fname)
-            plate_number = generate_plate_num(model, model2, imagedata)
-            print(plate_number[0])
-            pln = plate_number[0]
-            h = ""
-            for i in range(2, len(pln)):
-                if not pln[i].isdigit() :
-                    h += pln[i]
-            pln = pln.replace(h, hangul[h]+' ')
-            print(pln)
-            self.recog_carnum.setText(pln)
-
-            return pln
         
-    def settleup_slot(self):
-        #carnum = find_slot()
-        #self.recog_carnum.setText(carnum)
-        carnum = self.recog_carnum.text()
-        self.App.SettleupExpense(carnum)
-        exp = self.App.Expense()
-        self.expense.setText(str(exp))
-        print("settle up")
-
-    def parking_slot(self):
-        loc = self.want_parking.text()
-        print(loc)
-        carnum = self.recog_carnum.text()
-        #App = Application()
-        self.App.AddCar(loc, carnum)
-        print("parking")
-
-    def Info_slot(self) :
-        space = self.App.RequestPLinfo()
-        s = ""
-        for i in range(len(space)) :
-            if space[i] == 0 :
-                s += str(i+1)
-                s += ", "
-        s += "번 자리"
-        self.empty.setText(s)
-
-        #self.parking_slot()
-
-
-app = QApplication([])
-win = WindowClass()
-win.show()
-app.exec_()
+prev_time = time.time()
+generate_plate_num(model, model2, image1)
+current_time = time.time()
+inference_time = datetime.timedelta(seconds=current_time - prev_time)
+print(inference_time)
+prev_time = time.time()
+generate_plate_num(model, model2, image2)
+current_time = time.time()
+inference_time = datetime.timedelta(seconds=current_time - prev_time)
+print(inference_time)
+prev_time = time.time()
+generate_plate_num(model, model2, image3)
+current_time = time.time()
+inference_time = datetime.timedelta(seconds=current_time - prev_time)
+print(inference_time)
+prev_time = time.time()
+generate_plate_num(model, model2, image4)
+current_time = time.time()
+inference_time = datetime.timedelta(seconds=current_time - prev_time)
+print(inference_time)

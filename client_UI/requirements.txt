@@ -1,0 +1,9 @@
+numpy
+torch
+torchvision
+matplotlib
+tensorboard
+terminaltables
+pillow
+tqdm
+imgaug
